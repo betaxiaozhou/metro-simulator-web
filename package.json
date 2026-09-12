@@ -1,0 +1,8 @@
+{
+  "name": "beijing-line-19-metro-simulator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}
