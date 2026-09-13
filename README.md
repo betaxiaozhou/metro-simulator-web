@@ -229,10 +229,10 @@ metro-simulator/
 
 ## 许可证
 
-本项目原创源代码与文档采用 [MIT License](LICENSE)。
+本项目原创源代码与文档采用 [MIT License](LICENSE-CODE)。
 
 以下音频资源采用独立的非开源授权，不包含在 MIT License 中：
 
 - `assets/announcements/stations/` — © 2022 Brick_Hans，详见其 [LICENSE](assets/announcements/stations/LICENSE)。
 
-完整的许可范围说明见 [NOTICE](NOTICE)。
+完整的许可范围说明见 [LICENSE](LICENSE)。
