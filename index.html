@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>北京地铁 19 号线驾驶模拟器 · 8A 编组</title>
+<link rel="stylesheet" href="style.css?v=review-fixes-1">
+</head>
+<body>
+
+<!-- 顶部状态栏 -->
+<header class="top-bar">
+  <div class="brand">
+    <span class="logo">METRO·SIM</span>
+    <span class="line">北京地铁 19 号线 · CBTC 移动闭塞 · A 型车 8 节编组 · 接触网 DC1500V</span>
+  </div>
+  <div class="clock">
+    <a class="occ-entry" href="ats-occ/index.html" hidden>OCC / ATS 中心</a>
+    <span id="systemTime">00:00:00</span>
+    <span id="lineId">19号线</span>
+    <span id="trainId">车次 19005</span>
+  </div>
+</header>
+
+<!-- ============== 驾驶台 Tc1 ============== -->
+<section class="cab cab-1 is-active" data-cab="Tc1">
+<div class="cab-divider">
+  <span>驾驶台 Tc1 · <b class="cab-status" data-cab-status="Tc1">当前控制端</b></span>
+</div>
+
+<!-- 屏幕部分 -->
+<section class="screens" id="cabScreens">
+
+  <!-- 左：国标 DMI — HTML 与 project/vobc-hmi 同源，副本置于 vobc-dmi/index.html -->
+  <div class="screen mmi" id="mmi">
+    <div class="screen-title">信号 HMI · 车载 DMI（GB/T 布局）</div>
+    <div class="mmi-dmi-slot">
+      <iframe class="mmi-vobc" id="mmi-vobc" title="车载信号人机界面" src="vobc-dmi/index.html?embed=1"></iframe>
+    </div>
+  </div>
+
+  <!-- 右：TCMS 列车监控（中车 MB-TN 系列风格） -->
+  <div class="screen tcms" id="tcms">
+    <div class="screen-title">列车监控 TCMS · MB-TN</div>
+    <div class="tcms-pane tcms-embed-slot">
+      <iframe class="mmi-vobc mmi-tcms" id="mmi-tcms" title="列车监控系统界面" src="tcms-dmi/index.html?embed=1&amp;cab=Tc1&amp;v=fixed-consist-order-1"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 控制部分 ============== -->
+<section class="console" data-cab-controls="Tc1">
+
+  <!-- 左控制区：辅助 -->
+  <div class="panel left-panel">
+    <div class="panel-title">辅助控制（左侧）</div>
+
+    <div class="key-switch">
+      <div class="ks-label">司机钥匙 ZK</div>
+      <div class="ks-track">
+        <button class="ks-btn" data-cab="Tc1" data-key="off">OFF</button>
+        <span class="key-cylinder" aria-hidden="true"><i class="key-handle"></i></span>
+        <button class="ks-btn active" data-cab="Tc1" data-key="on">ON</button>
+      </div>
+    </div>
+
+    <div class="btn-grid">
+      <button class="op-btn" id="btnHeadlight"><i class="led"></i><span>头灯</span></button>
+      <button class="op-btn" id="btnCabinLight"><i class="led"></i><span>司机室灯</span></button>
+      <button class="op-btn" id="btnSalonLight"><i class="led"></i><span>客室灯</span></button>
+      <button class="op-btn" id="btnAC"><i class="led"></i><span>空调</span></button>
+      <button class="op-btn" id="btnWiperL"><i class="led"></i><span>雨刮·低</span></button>
+      <button class="op-btn" id="btnWiperH"><i class="led"></i><span>雨刮·高</span></button>
+      <button class="op-btn" id="btnDoorLeft"><i class="led"></i><span>左门</span></button>
+      <button class="op-btn" id="btnDoorRight"><i class="led"></i><span>右门</span></button>
+      <button class="op-btn" id="btnDoorCloseLeft"><i class="led"></i><span>左关</span></button>
+      <button class="op-btn" id="btnDoorCloseRight"><i class="led"></i><span>右关</span></button>
+      <button class="op-btn" id="btnHorn"><i class="led"></i><span>鸣笛</span></button>
+    </div>
+
+  </div>
+
+  <!-- 中控制区：主控手柄 + 方向手柄 -->
+  <div class="panel center-panel">
+    <div class="panel-title">主控制器（中央）</div>
+
+    <div class="levers">
+      <!-- 方向手柄 -->
+      <div class="lever-col">
+        <div class="lever-label">方向手柄 / 换向器</div>
+        <div class="dir-lever" id="dirLever">
+          <button class="dir-pos" data-cab="Tc1" data-dir="F">前进 F</button>
+          <button class="dir-pos active" data-cab="Tc1" data-dir="N">中位 N</button>
+          <button class="dir-pos" data-cab="Tc1" data-dir="R">后退 R</button>
+        </div>
+      </div>
+
+      <!-- 主控手柄（牵引-0-常用-快速制动） -->
+      <div class="lever-col main-lever-col">
+        <div class="lever-label">主控手柄 TBC（牵引/制动）</div>
+        <div class="main-lever-wrap">
+          <div class="lever-scale">
+            <span class="s-tr-max">+100% 牵引</span>
+            <span class="s-tr">+50%</span>
+            <span class="s-zero">0 惰行</span>
+            <span class="s-bk">-50%</span>
+            <span class="s-bk-max">-100% 常用制动</span>
+            <span class="s-eb">EB 快速制动</span>
+          </div>
+          <div class="lever-track" id="leverTrack">
+            <div class="lever-handle" id="leverHandle">
+              <div class="grip"></div>
+              <div class="ball"></div>
+            </div>
+            <div class="zero-line"></div>
+            <div class="eb-line"></div>
+          </div>
+        </div>
+        <div class="lever-readout">
+          手柄位 <b id="leverPos">0</b>% · <span id="leverState">惰行</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 右控制区：信号系统按钮 + 紧急 -->
+  <div class="panel right-panel">
+    <div class="panel-title">信号 / 紧急（右侧）</div>
+
+    <div class="btn-grid">
+      <button
+        type="button"
+        class="op-btn big"
+        id="btnATO"
+        title="AM/FAM：允许启动时小灯闪烁；ATO 驾驶中灯常亮。A/A 满足条件可自动投入"
+      ><i class="led"></i><span>ATO 启动</span></button>
+      <button class="op-btn" id="btnModeUp"><i class="led"></i><span>模式升级</span></button>
+      <button class="op-btn" id="btnModeDown"><i class="led"></i><span>模式降级</span></button>
+      <button class="op-btn" id="btnConfirm"><i class="led"></i><span>确认</span></button>
+      <button class="op-btn" id="btnDoorEnable" title="人工：允许两侧车门。ATP 停准释放仅允许线路规定的站台侧"><i class="led"></i><span>车门允许</span></button>
+      <button class="op-btn" id="btnSkip"><i class="led"></i><span>跳停</span></button>
+      <button class="op-btn" id="btnHold"><i class="led"></i><span>扣车</span></button>
+    </div>
+
+    <div class="door-mode-row">
+      <label class="door-mode-label" for="doorModeSelect">门模式</label>
+      <select id="doorModeSelect" class="door-mode-select" title="AM/FAM 停站开门/关门自动化">
+        <option value="MM">M/M　手开 · 手关</option>
+        <option value="AM">A/M　自开 · 手关</option>
+        <option value="AA" selected>A/A　自开 · 自关</option>
+      </select>
+    </div>
+
+    <div class="door-mode-row">
+      <label class="door-mode-label" for="maxAuthModeSelect">最高驾驶模式</label>
+      <select id="maxAuthModeSelect" class="door-mode-select" title="国标 DMI 5 区：授权/线路允许达到的最高模式（非当前模式）；点式时 FAM 以 AM-I 表示">
+        <option value="RM">RM　限制人工</option>
+        <option value="CM">CM　ATP 防护人工</option>
+        <option value="AM">AM　自动驾驶</option>
+        <option value="FAM" selected>FAM　全自动</option>
+      </select>
+    </div>
+
+    <button class="emergency-btn" id="emergencyBtn">
+      <span>紧急</span>
+      <span>制动</span>
+      <span>EB</span>
+    </button>
+
+    <div class="hint">
+      Q / E：模式 ↑↓ &nbsp; W / S：手柄 ±（弹窗打开时不响应）<br>
+      Enter：ATO &nbsp; Esc：紧急 · 手柄可拖拽 / 触摸屏
+    </div>
+  </div>
+</section>
+</section>
+
+<!-- ============== 驾驶台 Tc2 ============== -->
+<section class="cab cab-2 is-standby" data-cab="Tc2">
+  <div class="cab-divider">
+    <span>驾驶台 Tc2 · <b class="cab-status" data-cab-status="Tc2">未占用</b></span>
+  </div>
+
+  <!-- 屏幕部分（iframe 唯一 id，与第一台联动） -->
+  <section class="screens" id="cabScreens2">
+
+    <!-- 左：信号 HMI -->
+    <div class="screen mmi" id="mmi2">
+      <div class="screen-title">信号 HMI · 车载 DMI（GB/T 布局）</div>
+      <div class="mmi-dmi-slot">
+        <iframe class="mmi-vobc" id="mmi-vobc2" title="车载信号人机界面" src="vobc-dmi/index.html?embed=1"></iframe>
+      </div>
+    </div>
+
+    <!-- 右：TCMS 列车监控 -->
+    <div class="screen tcms" id="tcms2">
+      <div class="screen-title">列车监控 TCMS · MB-TN</div>
+      <div class="tcms-pane tcms-embed-slot">
+        <iframe class="mmi-vobc mmi-tcms" id="mmi-tcms2" title="列车监控系统界面" src="tcms-dmi/index.html?embed=1&amp;cab=Tc2&amp;v=fixed-consist-order-1"></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- 控制部分 -->
+  <section class="console" data-cab-controls="Tc2">
+
+    <!-- 左控制区：辅助 -->
+    <div class="panel left-panel">
+      <div class="panel-title">辅助控制（左侧）</div>
+
+      <div class="key-switch">
+        <div class="ks-label">司机钥匙 ZK</div>
+        <div class="ks-track">
+          <button class="ks-btn active" type="button" data-cab="Tc2" data-key="off">OFF</button>
+          <span class="key-cylinder" aria-hidden="true"><i class="key-handle"></i></span>
+          <button class="ks-btn" type="button" data-cab="Tc2" data-key="on">ON</button>
+        </div>
+      </div>
+
+      <div class="btn-grid">
+        <button class="op-btn" id="btnHeadlightTc2" type="button"><i class="led"></i><span>头灯</span></button>
+        <button class="op-btn" id="btnCabinLightTc2" type="button"><i class="led"></i><span>司机室灯</span></button>
+        <button class="op-btn" id="btnSalonLightTc2" type="button"><i class="led"></i><span>客室灯</span></button>
+        <button class="op-btn" id="btnACTc2" type="button"><i class="led"></i><span>空调</span></button>
+        <button class="op-btn" id="btnWiperLTc2" type="button"><i class="led"></i><span>雨刮·低</span></button>
+        <button class="op-btn" id="btnWiperHTc2" type="button"><i class="led"></i><span>雨刮·高</span></button>
+        <button class="op-btn" id="btnDoorLeftTc2" type="button"><i class="led"></i><span>左门</span></button>
+        <button class="op-btn" id="btnDoorRightTc2" type="button"><i class="led"></i><span>右门</span></button>
+        <button class="op-btn" id="btnDoorCloseLeftTc2" type="button"><i class="led"></i><span>左关</span></button>
+        <button class="op-btn" id="btnDoorCloseRightTc2" type="button"><i class="led"></i><span>右关</span></button>
+        <button class="op-btn" id="btnHornTc2" type="button"><i class="led"></i><span>鸣笛</span></button>
+      </div>
+
+    </div>
+
+    <!-- 中控制区：主控手柄 + 方向手柄 -->
+    <div class="panel center-panel">
+      <div class="panel-title">主控制器（中央）</div>
+
+      <div class="levers">
+        <!-- 方向手柄 -->
+        <div class="lever-col">
+          <div class="lever-label">方向手柄 / 换向器</div>
+          <div class="dir-lever">
+            <button class="dir-pos" type="button" data-cab="Tc2" data-dir="F">前进 F</button>
+            <button class="dir-pos active" type="button" data-cab="Tc2" data-dir="N">中位 N</button>
+            <button class="dir-pos" type="button" data-cab="Tc2" data-dir="R">后退 R</button>
+          </div>
+        </div>
+
+        <!-- 主控手柄（牵引-0-常用-快速制动） -->
+        <div class="lever-col main-lever-col">
+          <div class="lever-label">主控手柄 TBC（牵引/制动）</div>
+          <div class="main-lever-wrap">
+            <div class="lever-scale">
+              <span class="s-tr-max">+100% 牵引</span>
+              <span class="s-tr">+50%</span>
+              <span class="s-zero">0 惰行</span>
+              <span class="s-bk">-50%</span>
+              <span class="s-bk-max">-100% 常用制动</span>
+              <span class="s-eb">EB 快速制动</span>
+            </div>
+            <div class="lever-track" id="leverTrackTc2">
+              <div class="lever-handle" id="leverHandleTc2">
+                <div class="grip"></div>
+                <div class="ball"></div>
+              </div>
+              <div class="zero-line"></div>
+              <div class="eb-line"></div>
+            </div>
+          </div>
+          <div class="lever-readout">
+            手柄位 <b id="leverPosTc2">0</b>% · <span id="leverStateTc2">惰行</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 右控制区：信号系统按钮 + 紧急 -->
+    <div class="panel right-panel">
+      <div class="panel-title">信号 / 紧急（右侧）</div>
+
+      <div class="btn-grid">
+        <button type="button" class="op-btn big" id="btnATOTc2"><i class="led"></i><span>ATO 启动</span></button>
+        <button class="op-btn" id="btnModeUpTc2" type="button"><i class="led"></i><span>模式升级</span></button>
+        <button class="op-btn" id="btnModeDownTc2" type="button"><i class="led"></i><span>模式降级</span></button>
+        <button class="op-btn" id="btnConfirmTc2" type="button"><i class="led"></i><span>确认</span></button>
+        <button class="op-btn" id="btnDoorEnableTc2" type="button"><i class="led"></i><span>车门允许</span></button>
+        <button class="op-btn" id="btnSkipTc2" type="button"><i class="led"></i><span>跳停</span></button>
+        <button class="op-btn" id="btnHoldTc2" type="button"><i class="led"></i><span>扣车</span></button>
+      </div>
+
+      <div class="door-mode-row">
+        <label class="door-mode-label" for="doorModeSelectTc2">门模式</label>
+        <select class="door-mode-select" id="doorModeSelectTc2">
+          <option value="MM">M/M　手开 · 手关</option>
+          <option value="AM">A/M　自开 · 手关</option>
+          <option value="AA" selected>A/A　自开 · 自关</option>
+        </select>
+      </div>
+
+      <div class="door-mode-row">
+        <label class="door-mode-label" for="maxAuthModeSelectTc2">最高驾驶模式</label>
+        <select class="door-mode-select" id="maxAuthModeSelectTc2">
+          <option value="RM">RM　限制人工</option>
+          <option value="CM">CM　ATP 防护人工</option>
+          <option value="AM">AM　自动驾驶</option>
+          <option value="FAM" selected>FAM　全自动</option>
+        </select>
+      </div>
+
+      <button class="emergency-btn" id="emergencyBtnTc2" type="button">
+        <span>紧急</span>
+        <span>制动</span>
+        <span>EB</span>
+      </button>
+
+      <div class="hint">
+        Q / E：模式 ↑↓ &nbsp; W / S：手柄 ±（弹窗打开时不响应）<br>
+        Enter：ATO &nbsp; Esc：紧急 · 手柄可拖拽 / 触摸屏
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- ATS 线路示意（置于控制台下方，宽屏铺开） -->
+<section class="ats-below-console">
+  <div class="screen track" id="track">
+    <div class="screen-title track-title-row">
+      <span>信号监视 · ATS 线路示意</span>
+      <div class="track-view-toolbar">
+        <button type="button" id="btnTrackZoomIn" class="track-zoom-btn" title="放大当前区间">放大</button>
+        <button type="button" id="btnTrackZoomOut" class="track-zoom-btn" title="缩小显示范围">缩小</button>
+        <button type="button" id="btnTrackZoomTrain" class="track-zoom-btn" title="以列车为中心显示区间">跟随列车</button>
+        <button type="button" id="btnTrackZoomReset" class="track-zoom-btn" title="显示全线">全线</button>
+        <span class="track-view-range" id="trackViewRange">运营全线 0 – 20900 m</span>
+      </div>
+    </div>
+    <div class="track-curve-toggles" id="trackCurveToggles"></div>
+    <div class="track-wrap" id="trackWrap">
+      <svg id="trackSvg" viewBox="0 0 1100 570" preserveAspectRatio="none">
+        <g id="speedProfileLayer"></g>
+        <line x1="40" y1="507" x2="1060" y2="507" class="rail"/>
+        <line x1="40" y1="522" x2="1060" y2="522" class="rail"/>
+        <g id="trackElems"></g>
+        <g id="trainMarker">
+          <rect x="-30" y="492" width="60" height="40" rx="4" class="train-body"/>
+          <rect x="-26" y="497" width="10" height="10" class="train-window"/>
+          <rect x="-12" y="497" width="10" height="10" class="train-window"/>
+          <rect x="2" y="497" width="10" height="10" class="train-window"/>
+          <rect x="16" y="497" width="10" height="10" class="train-window"/>
+          <text x="0" y="487" text-anchor="middle" class="train-label">19005</text>
+        </g>
+      </svg>
+    </div>
+    <div class="track-info">
+      <div class="ti-cell"><span>已运行</span><b id="totalDist">0</b> m</div>
+      <div class="ti-cell"><span>位置</span><b id="absPos">0</b> m</div>
+      <div class="ti-cell"><span>ATP 等级</span><b id="atpLevel">CBTC L2</b></div>
+      <div class="ti-cell"><span>移动授权</span><b id="moveAuth">--</b></div>
+    </div>
+    <div class="signal-info-strip" id="tcmsLog">
+      <div>[INIT] TCMS MB-TN 启动</div>
+    </div>
+  </div>
+</section>
+
+<!-- 列车运行最高限制速度（绝对上限） -->
+<section class="supervised-limit-section">
+  <div class="screen supervised-limit-panel">
+    <div class="screen-title supervised-limit-title">
+      <span>列车运行最高限制速度（绝对上限）</span>
+      <span class="supervised-limit-hint">可编辑各区段起点/终点与最高限制速度；超过最高限制速度将触发紧急制动</span>
+    </div>
+    <div class="supervised-limit-toolbar">
+      <button type="button" id="btnSupervisedApply" class="track-zoom-btn">应用</button>
+      <button type="button" id="btnSupervisedReset" class="track-zoom-btn">恢复默认</button>
+    </div>
+    <div class="supervised-limit-table-wrap">
+      <table class="supervised-limit-table">
+        <thead>
+          <tr>
+            <th>起点 (m)</th>
+            <th>终点 (m)</th>
+            <th>最高运行 (km/h)</th>
+            <th>最高限制速度 (km/h)</th>
+          </tr>
+        </thead>
+        <tbody id="supervisedLimitBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 帮助 -->
+<footer class="bottom-bar">
+  <div>© 模拟器 · 参考 GB/T 7928、T/CAMET 04003、IEEE 1474、IEC 62267 / 不用于实际培训</div>
+  <div>
+    <button id="btnReset">重置</button>
+    <button id="btnHelp">说明</button>
+  </div>
+</footer>
+
+<!-- 帮助弹窗 -->
+<div class="modal" id="helpModal" hidden>
+  <div class="modal-box">
+    <h2>操作说明</h2>
+    <ol>
+      <li><b>两端驾驶台 / 钥匙 ZK</b>：Tc1、Tc2 端共用同一套车载 ATP/ATO/TCMS，控制权按钥匙激活顺序“先到先得”。另一端钥匙可以转到 ON，但不会取得控制权；此时激活端 VOBC 第 7 区显示“本端激活 / 对端故障”，后开端显示“本端故障 / 对端激活”。当前端停稳、手柄归零、方向置 N 后关闭钥匙，已打开钥匙的另一端自动接管。</li>
+      <li><b>方向手柄</b>：上电后默认中位「N」。正向运行选「前进 F」；「后退 R」用于 RM/调试等限速后退，选 R 后向上推主控手柄仍是牵引，列车向后运行（ATO 仅允许 F）。停稳后方可换向。</li>
+      <li><b>门关好联锁</b>：任一侧车门开启时牵引被切除，体感上更像实车。</li>
+      <li><b>驾驶室钥匙状态</b>：钥匙 OFF 时该端 DMI 锁定；钥匙 ON 但未取得控制权时 DMI 上电并在第 7 区报故障，其他控制仍锁定。换端不会重置列车、ATP 和信号监督状态。</li>
+      <li><b>模式</b>：默认 <b>RM</b>（限制人工，最高 25 km/h）。按「模式升级」依次进入 <b>CM</b>（ATP 防护人工）→ <b>AM</b>（ATO 自动）→ <b>FAM</b>（全自动）。</li>
+      <li><b>主控手柄</b>：拖动 / 用 <kbd>W</kbd><kbd>S</kbd>。上为牵引、下为常用制动、最底为快速制动 (EB)。</li>
+      <li><b>ATO 与「允许启动」</b>（AM/FAM）：<b>ATO 启动</b>上的小圆灯在<strong>允许启动</strong>（可发车）时<strong>闪烁</strong>；<strong>ATO 驾驶过程中灯常亮</strong>。<b>M/M、A/M</b> 进站后 ATO 退出，乘降结束且灯再次亮起后须再按按钮；<b>A/A</b> 条件满足时可由系统自动投入。</li>
+      <li><b>车门允许</b>：<b>ATP</b> 在 AM/FAM 停准后仅给出当前站 <strong>站台侧</strong>门允许（与线路数据一致），只能开该侧；按下 <b>车门允许</b> 为<strong>人工允许两侧</strong>（CM/调试等），可与 ATP 允许并存。</li>
+      <li><b>ATO 模式</b>：输出为牵引/常用制动指令，经车体响应与阻力积分得到位置速度。<strong>停准</strong>后 ATP 按门模式给出站台侧门允许/自动开该侧门。</li>
+      <li><b>门模式</b>（右侧下拉，仅 AM/FAM 自动停站时生效）：停准后 ATP 仅<strong>站台侧</strong>门允许；<b>M/M</b> 须司机开该侧；<b>A/M</b> 自动开该侧；<b>A/A</b> 自动开/关该侧并联站离站。</li>
+      <li><b>最高驾驶模式</b>：决定左侧 DMI <strong>5 区</strong>显示的授权上限（FAM / AM / CM / RM）；与「模式升级」选的<strong>当前驾驶模式</strong>（13 区）不同。CBTC 下 FAM 显示为 FAM-C，点式 ITC 下 FAM 以 AM-I 表示。<strong>模式升级</strong>不得超过此上限（例如上限为 CM 时无法升到 AM/FAM）。</li>
+      <li><b>EB</b>：超速、紧急按钮、车门未关均会触发紧急制动；停稳后归零方可缓解。</li>
+    </ol>
+    <h3>系统级别 / 模式</h3>
+    <p>RM 限制人工 ≤25 km/h ｜ CM 防护人工（ATP 监督） ｜ AM 自动驾驶 ｜ FAM 全自动</p>
+    <button id="closeHelp">关闭</button>
+  </div>
+</div>
+
+    <script type="module" src="js/main.js?v=fixed-consist-order-1"></script>
+</body>
+</html>

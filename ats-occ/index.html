@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>北京地铁 19 号线 ATS 中心工作站</title>
+  <link rel="stylesheet" href="occ.css">
+</head>
+<body>
+  <div class="display-stage">
+    <section class="monitor" aria-label="ATS 线路控制显示器">
+      <div class="monitor-screen">
+  <header class="titlebar">
+    <div class="brand">
+      <span class="roundel">M</span>
+      <div><b>北京地铁</b><small>BEIJING SUBWAY</small></div>
+      <strong>19号线</strong>
+    </div>
+    <div class="title">ATS 中心工作站 · 站场监视</div>
+    <div class="title-actions">
+      <span id="systemState"><i></i>系统正常</span>
+    </div>
+  </header>
+
+  <nav class="menubar" aria-label="ATS 功能菜单">
+    <button class="tool selected" data-panel="overview"><b>▣</b><span>站场图</span></button>
+    <button class="tool" data-action="fit"><b>▤</b><span>全线</span></button>
+    <button class="tool" data-action="follow"><b>◎</b><span>跟踪列车</span></button>
+    <button class="tool" data-action="zoom-in"><b>＋</b><span>放大</span></button>
+    <button class="tool" data-action="zoom-out"><b>－</b><span>缩小</span></button>
+    <button class="tool" data-action="labels"><b>Ａ</b><span>元素名称</span></button>
+    <button class="tool muted" disabled><b>⇥</b><span>进路办理</span></button>
+    <button class="tool muted" disabled><b>△</b><span>临时限速</span></button>
+    <div class="mode-key"><i></i>中控</div>
+  </nav>
+
+  <main class="workspace">
+    <section class="status-strip" aria-label="主要设备状态">
+      <div class="status-card"><span>ATS 主机</span><b><i></i>主用</b></div>
+      <div class="status-card"><span>ATP 轨旁</span><b><i></i>在线</b></div>
+      <div class="status-card"><span>CI 联锁</span><b><i></i>双系正常</b></div>
+      <div class="status-card"><span>DCS 通信</span><b><i></i>双网正常</b></div>
+      <div class="status-card time-card"><span>北京时间</span><b id="clock">--:--:--</b></div>
+    </section>
+
+    <section class="field-panel">
+      <div class="field-heading">
+        <div><strong>19号线正线</strong><span>牡丹园 — 新宫 · 附件 B 符号 · 配线点位示意</span></div>
+        <div class="legend">
+          <span><i class="blue"></i>空闲</span><span><i class="red"></i>CBTC占用</span>
+          <span><i class="white"></i>进路锁闭</span><span><i class="yellow"></i>保护锁闭</span>
+        </div>
+        <div class="interlocking-key" aria-label="联锁机工作状态">
+          <span><i class="green"></i>联锁A</span><span><i class="yellow"></i>联锁B</span>
+        </div>
+      </div>
+      <div class="viewport" id="viewport">
+        <svg id="trackPlan" viewBox="0 0 2520 700" role="img" aria-label="北京地铁19号线ATS站场图">
+          <desc>按照城市轨道交通信号系统运营技术规范附件B显示区段、道岔、信号机、站台和列车状态。</desc>
+          <defs>
+            <marker id="maArrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+              <path d="M0,0 L8,3 L0,6 Z" fill="#33ff00"/>
+            </marker>
+          </defs>
+          <g id="canvas">
+            <g id="trackSegments"></g>
+            <g id="turnouts"></g>
+            <g id="stations"></g>
+            <g id="signals"></g>
+            <g id="trainLayer"></g>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <aside class="diagram-panel">
+      <header><strong>列车运行图</strong><span>时刻 / 里程</span></header>
+      <svg viewBox="0 0 260 620" preserveAspectRatio="none" aria-label="列车运行图">
+        <g class="diagram-grid">
+          <path d="M25 40H250M25 96H250M25 152H250M25 208H250M25 264H250M25 320H250M25 376H250M25 432H250M25 488H250M25 544H250"/>
+          <path d="M25 40V580M70 40V580M115 40V580M160 40V580M205 40V580M250 40V580"/>
+        </g>
+        <g class="diagram-labels">
+          <text x="2" y="45">牡丹园</text><text x="2" y="157">积水潭</text>
+          <text x="2" y="269">太平桥</text><text x="2" y="381">景风门</text>
+          <text x="2" y="493">新发地</text><text x="2" y="579">新宫</text>
+        </g>
+        <path class="run-line primary" d="M32 40L62 96L88 152L115 208L140 264L166 320L190 376L215 432L235 488L250 544"/>
+        <path class="run-line" d="M245 40L221 96L201 152L178 208L157 264L133 320L110 376L87 432L63 488L40 544"/>
+      </svg>
+    </aside>
+
+    <section class="alarm-panel">
+      <header>
+        <strong>报警显示和确认处理</strong>
+        <div><button id="ackAlarm">确认选中</button><button id="ackAll">全部确认</button></div>
+      </header>
+      <table>
+        <thead><tr><th>等级</th><th>发生时间</th><th>设备/区域</th><th>报警内容</th><th>状态</th></tr></thead>
+        <tbody id="alarmRows">
+          <tr class="info selected"><td>信息</td><td>--:--:--</td><td>ATS</td><td>中心工作站登录成功，19号线站场图已载入</td><td>未确认</td></tr>
+          <tr><td>信息</td><td>--:--:--</td><td>CI-新宫</td><td>联锁 A/B 系通信正常</td><td>已确认</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <span>调度员：仿真用户</span><span>控制范围：全线中控</span>
+    <span>仿真界面 · 不用于实际行车指挥</span>
+  </footer>
+      </div>
+      <div class="monitor-controls" aria-hidden="true">
+        <span class="power-light"></span>
+        <span class="control-key"></span>
+        <span class="control-key"></span>
+        <span class="control-key"></span>
+        <span class="power-key"></span>
+      </div>
+    </section>
+    <a class="return-cab" href="../index.html">返回驾驶台</a>
+  </div>
+  <script type="module" src="occ.js"></script>
+</body>
+</html>
