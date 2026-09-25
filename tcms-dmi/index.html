@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024,initial-scale=1" />
+  <title>列车监控 TCMS</title>
+  <style>
+    :root{
+      --w:1024px;
+      --h:768px;
+      --green:#79ff00;
+      --black:rgb(0, 12, 25);
+      --gray:#6b7c94;
+      --green-on:var(--black);
+      --grid:#e5e8dd;
+      --panel:#0f2336;
+      --panel-d:#081522;
+      --dark:#00182e;
+      --blue:#789cff;
+      --yellow:#f7df00;
+      --orange:#f68b24;
+      --text:#f5f5ed;
+      --muted:#d6d8cf;
+      --font-gb-song:"宋体-GB2312","SimSun-GB2312","SimSun","NSimSun",serif;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      background:#1a1a1a;
+      color:var(--text);
+      font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;
+      user-select:none;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .simulator { display: flex; gap: 20px; transform: scale(0.85); transform-origin: center center; }
+
+    /* 控制台样式 */
+    .control-panel {
+        width: 480px; background-color: #222; border-radius: 8px; padding: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        gap: 10px; border: 1px solid #444; height: 768px; box-sizing: border-box; overflow-y: auto;
+    }
+    .control-panel h2 { margin: 0 0 5px 0; font-size: 18px; border-bottom: 2px solid #555; padding-bottom: 5px; color: #fff;}
+    .ctrl-group { background: #111; padding: 10px; border-radius: 6px; border: 1px solid #333; }
+    .ctrl-group h3 { margin: 0 0 8px 0; font-size: 14px; color: var(--blue); border-bottom: 1px solid #333; padding-bottom: 4px;}
+    .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+    .ctrl-item { display: flex; align-items: center; justify-content: space-between; }
+    .ctrl-item label { font-size: 11px; color: #ccc; width: 65px; flex-shrink: 0; }
+    .ctrl-item input[type="text"], .ctrl-item select { flex: 1; width: 100%; background: #333; color: white; border: 1px solid #555; padding: 4px; border-radius: 3px; font-size: 12px;}
+    .slider-row { display: flex; flex-direction: column; margin-bottom: 5px;}
+    .slider-row div { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; color: #ccc;}
+    .slider-row input { width: 100%; cursor: pointer;}
+    .car-control-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .car-panel {
+        background: #1a1a1a;
+        border: 1px solid #444;
+        border-radius: 6px;
+        padding: 8px;
+        min-width: 0;
+    }
+    .car-panel-title {
+        margin: 0 0 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+        padding-bottom: 4px;
+        border-bottom: 1px solid #333;
+    }
+    .car-panel-title .car-slot {
+        color: #888;
+        font-weight: 400;
+        font-size: 10px;
+    }
+    .car-panel .ctrl-grid {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+    .car-panel .ctrl-item label { width: 56px; }
+    .car-panel input[type="number"],
+    .car-panel select,
+    .car-panel input[type="text"] {
+        flex: 1;
+        width: 100%;
+        background: #333;
+        color: #fff;
+        border: 1px solid #555;
+        padding: 3px 4px;
+        border-radius: 3px;
+        font-size: 11px;
+    }
+    .door-pair-field {
+        margin: 6px 0 0;
+        padding: 6px 6px 4px;
+        border: 1px solid #333;
+        border-radius: 4px;
+    }
+    .door-pair-field legend {
+        font-size: 10px;
+        color: #aaa;
+        padding: 0 4px;
+    }
+    .door-pair-rows { display: grid; gap: 4px; }
+    .door-pair-row {
+        display: grid;
+        grid-template-columns: 26px 42px 1fr;
+        gap: 4px;
+        align-items: center;
+        font-size: 10px;
+        color: #bbb;
+    }
+    .door-pair-row input {
+        text-align: center;
+        font-family: Consolas, Menlo, monospace;
+        letter-spacing: 1px;
+    }
+    .door-pair-hint { color: #7a9; font-size: 10px; white-space: nowrap; }
+    .ctrl-alarm-item {
+        gap: 6px;
+    }
+    .ctrl-alarm-icon {
+        width: 22px;
+        height: 19px;
+        flex-shrink: 0;
+        position: relative;
+        filter: drop-shadow(0 0 1px rgba(255,255,255,.75));
+        color: #000;
+    }
+    .ctrl-alarm-icon::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: #f7df00;
+        clip-path: polygon(50% 0,100% 100%,0 100%);
+    }
+    .ctrl-alarm-icon::after {
+        content: "!";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 1px;
+        text-align: center;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1;
+        color: #000;
+    }
+    button { background: #444; color: white; border: 1px solid #666; padding: 8px; border-radius: 4px; cursor: pointer; }
+
+    /* 嵌入 metro-simulator：仅 DMI，隐藏调试面板 */
+    html.tcms-embed-root, body.tcms-embed {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background-color: var(--black);
+    }
+    body.tcms-embed {
+        display: block;
+        padding: 0;
+    }
+    body.tcms-embed .simulator {
+        gap: 0;
+        transform: none;
+        transform-origin: top left;
+        width: 100%;
+        min-height: 0;
+    }
+    body.tcms-embed #mock-panel { display: none !important; }
+    body.tcms-embed .tcms {
+        transform-origin: top left;
+    }
+    body.tcms-embed #tcms-embed-wrap {
+        margin: 0 auto;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .tcms{
+      width:var(--w);
+      height:var(--h);
+      position:relative;
+      overflow:hidden;
+      background:var(--black);
+      border:none;
+      box-shadow:inset 0 0 0 4px var(--black);
+      transform-origin:top left;
+    }
+    .layout{
+      display:grid;
+      width:1024px;
+      height:768px;
+      grid-template-columns:148px 141px 141px 57px 85px 50px 96px 103px 47px 56px 100px;
+      grid-template-rows:46.389px 76.285px 280.397px 179.369px 61.852px 61.854px 61.854px;
+    }
+    .zone{
+      position:relative;
+      background:var(--black);
+      overflow:hidden;
+    }
+    .z1{grid-area:1/1/2/12}
+    .z2{grid-area:2/1/3/2}
+    .z3{grid-area:2/2/3/3}
+    .z4{grid-area:2/3/3/4}
+    .z5{grid-area:2/4/3/6}
+    .z6{grid-area:2/6/3/8}
+    .z7{grid-area:2/8/3/11}
+    .z8{grid-area:2/11/3/12}
+    .z9{grid-area:3/1/4/12}
+    .z10{grid-area:4/1/5/10}
+    .z11{grid-area:5/1/6/10}
+    .z12a{grid-area:4/10/6/12}
+    .z15{grid-area:6/1/7/12}
+    .z16{grid-area:7/1/8/12}
+
+    .header{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      height:100%;
+      padding:0 16px;
+      color:#e8ede4;
+      font-size:18px;
+      font-weight:700;
+      font-family:var(--font-gb-song);
+    }
+    .header .train-id{
+      position:relative;
+      z-index:1;
+      white-space:nowrap;
+      font-size:24px;
+    }
+    .header .title{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      margin:0;
+      font-family:var(--font-gb-song);
+      font-size:24px;
+      font-weight:700;
+      white-space:nowrap;
+      pointer-events:none;
+    }
+    .status-cell{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:2px;
+      text-align:center;
+      color:#eef1e8;
+    }
+    .gray-box{
+      width:116px;
+      height:62px;
+      background:var(--gray);
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      padding-right:8px;
+    }
+    .half-box{
+      width:139px;
+      height: 30px;
+      background:var(--gray);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .z2.status-cell{
+      align-items:flex-end;
+      padding-right:1px;
+    }
+    .power .gray-box, .speed .gray-box{
+      flex-direction:row;
+      gap:8px;
+      font-variant-numeric:tabular-nums;
+      font-feature-settings:"tnum";
+      font-family:"Arial","Helvetica Neue","Microsoft YaHei","PingFang SC",sans-serif;
+    }
+    .status-cell .lab{
+      color:#fff;
+      font-size:22px;
+      font-weight:600;
+      letter-spacing:1px;
+    }
+    .status-cell .val{
+      color:#fff;
+      font-size:22px;
+      font-weight:600;
+      line-height:1.05;
+    }
+    .z3.status-cell, .z4.status-cell{
+      font-family:var(--font-gb-song);
+    }
+    .power{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      height:100%;
+      font-weight:900;
+    }
+    .z5.power{
+      justify-content:flex-start;
+      padding-left:2px;
+    }
+    .power .minus-bar{
+      position:absolute;
+      left:10px;
+      top:50%;
+      transform:translateY(-50%);
+      width:20px;
+      height:5px;
+      background:var(--green);
+      border-radius:0;
+      visibility:hidden;
+    }
+    .power .minus-bar.is-active{
+      visibility:visible;
+    }
+    .z5.power .gray-box{
+      position:relative;
+    }
+    .power .amp{
+      min-width:70px;
+      color:var(--green);
+      font-size:44px;
+      font-weight:300;
+      text-align:right;
+    }
+    .power .unit{align-self:flex-end;margin-bottom:17px;color:#fff;font-size:18px}
+    .speed{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      color:var(--green);
+      font-weight:900;
+    }
+    .speed .num{
+      font-size:46px;
+      font-weight:300;
+    }
+    .speed .decimal-dot{
+      display:inline-block;
+      width:5px;
+      height:5px;
+      margin:0 0px 0px;
+      border-radius:50%;
+      background:currentColor;
+      vertical-align:baseline;
+    }
+    .speed .unit{align-self:flex-end;margin-bottom:17px;color:#fff;font-size:18px}
+    .speed-alarm-icon{
+      width:78px;
+      height:66px;
+      position:relative;
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 88'%3E%3Cdefs%3E%3ClinearGradient id='alarmFill' x1='50' y1='11' x2='50' y2='79' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%23f7df00'/%3E%3Cstop offset='72%25' stop-color='%23f7df00'/%3E%3Cstop offset='100%25' stop-color='%23969682'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M50 8 Q53.5 8 56 12 L92 74 Q96 81 88 81 L12 81 Q4 81 8 74 L44 12 Q46.5 8 50 8 Z' fill='none' stroke='white' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M50 11 Q53.2 11 55.5 14.5 L90 75.5 Q93 79 87 79 L13 79 Q7 79 10 75.5 L44.5 14.5 Q46.8 11 50 11 Z' fill='url(%23alarmFill)'/%3E%3C/svg%3E") center/contain no-repeat;
+      filter:drop-shadow(0 0 2px rgba(255,255,255,.65));
+      color:#000;
+    }
+    .speed-alarm-icon::after{
+      content:"!";
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:5px;
+      text-align:center;
+      font-family:Arial,Helvetica,sans-serif;
+      font-size:49px;
+      font-weight:900;
+      line-height:1;
+      color:#000;
+    }
+    .speed-alarm-icon.is-alarm-active{
+      animation:speed-alarm-blink 1s step-end infinite;
+    }
+    @keyframes speed-alarm-blink{
+      0%,50%{opacity:1}
+      50.01%,100%{opacity:0}
+    }
+    .speed-alarm-icon[hidden]{
+      display:none !important;
+    }
+    .side-ind{
+      height:100%;
+      display:grid;
+      place-items:center;
+    }
+
+    .train-area{
+      padding:40px 0 2px 0;
+      border-top:2px solid var(--grid);
+      display:flex;
+      justify-content:flex-start;
+      gap:4px;
+    }
+    .left-bar,
+    .right-bar{
+      width:26px;
+      background:var(--gray);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:inset 1px 1px 0 rgba(255,255,255,0.6);
+    }
+    .train-area[data-active-end="left"] .left-bar,
+    .train-area[data-active-end="right"] .right-bar{
+      background:#f68b24;
+      box-shadow:inset 1px 1px 0 rgba(255,255,255,0.8);
+    }
+    .left-bar .arrow,
+    .right-bar .arrow{
+      display:none;
+      width:0;
+      height:0;
+      border-top:10px solid transparent;
+      border-bottom:10px solid transparent;
+    }
+    .train-area[data-running-direction="left"] .left-bar .arrow{
+      display:block;
+      border-right:16px solid var(--green);
+    }
+    .train-area[data-running-direction="right"] .right-bar .arrow{
+      display:block;
+      border-left:16px solid var(--green);
+    }
+    .main-cars{
+      width:942px;
+      position:relative;
+    }
+    .pantographs{
+      position:absolute;
+      top:-34px;
+      left:0;
+      right:0;
+      display:grid;
+      grid-template-columns:repeat(8, minmax(0, 1fr));
+      gap:4px;
+      pointer-events:none;
+    }
+    .panto{
+      justify-self:center;
+      width:32px;
+      height:32px;
+      border:none;
+      color:var(--black);
+      display:grid;
+      place-items:center;
+      font-size:20px;
+      font-weight:900;
+      line-height:1;
+      background:var(--green);
+    }
+    .panto svg{
+      width:28px;
+      height:28px;
+      display:block;
+    }
+    .panto svg path{
+      fill:currentColor;
+    }
+    .panto.panto-down{
+      background:var(--gray);
+    }
+    .cars{
+      display:grid;
+      grid-template-columns:repeat(8, minmax(0, 1fr));
+      height:100%;
+      gap:4px;
+    }
+    .car{
+      position:relative;
+      border:2px solid var(--grid);
+      padding:2px 1px;
+      background:var(--gray);
+      min-width:0;
+      overflow:hidden;
+    }
+    .car-name-row{
+      position:absolute;
+      top:45%;
+      left:0;
+      right:0;
+      transform:translateY(-50%);
+      display:grid;
+      grid-template-columns:1fr auto 1fr;
+      align-items:center;
+      pointer-events:none;
+      z-index:1;
+    }
+    .car-name-slot-start{
+      display:flex;
+      justify-content:flex-end;
+      padding-right:8px;
+    }
+    .car-name-slot-end{
+      display:flex;
+      justify-content:flex-start;
+      padding-left:8px;
+    }
+    .car-name{
+      color:#fff;
+      text-align:center;
+      font-family:"SimSun","NSimSun","Songti SC","STSong","宋体",serif;
+      font-size:18px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .exit-badge{
+      flex-shrink:0;
+      width:26px;
+      height:26px;
+      display:grid;
+      place-items:center;
+      background:var(--green);
+      color:var(--green-on);
+      font-family:"SimSun","NSimSun","Songti SC","STSong","宋体",serif;
+      font-size:10px;
+      padding-left: 0px;
+      padding-right: 2px;
+      font-weight:700;
+      line-height:1;
+      border-radius:0;
+    }
+    .hscb-chip{
+      position:absolute;
+      padding:3px 1px;
+      border-radius:8px;
+      font-family:"SimSun","NSimSun","Songti SC","STSong","宋体",serif;
+      font-size:11px;
+      font-weight:900;
+      line-height:1;
+      letter-spacing:0;
+      pointer-events:none;
+      z-index:2;
+    }
+    .hscb-chip.hscb-main{
+      left:5px;
+      top:64px;
+      padding:4px 8px;
+      border-radius:5px;
+      font-size:12px;
+      line-height:1.1;
+    }
+    .hscb-chip.hscb-start{
+      left:5px;
+      top:calc(45% + 22px);
+    }
+    .hscb-chip.hscb-end{
+      right:5px;
+      top:calc(45% + 22px);
+    }
+    .hscb-chip.hscb-brake{
+      left:5px;
+      bottom:0;
+      transform:translate(-100%, 100%);
+      min-width:34px;
+      box-sizing:border-box;
+      text-align:center;
+    }
+    .hscb-chip[hidden]{
+      display:none !important;
+    }
+    .brake-indicator{
+      position:absolute;
+      width:46px;
+      height:28px;
+      color:var(--green);
+      pointer-events:none;
+      z-index:2;
+    }
+    .brake-indicator.brake-main{
+      right:3px;
+      top:60px;
+    }
+    .brake-indicator.brake-bottom{
+      left:50%;
+      top:calc(47% + 42px);
+      transform:translateX(-50%);
+    }
+    .brake-indicator[hidden]{
+      display:none !important;
+    }
+    .brake-indicator .brake-frame{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      z-index:2;
+    }
+    .brake-indicator .brake-disc{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      width:27px;
+      height:27px;
+      border-radius:50%;
+      background:var(--green);
+      color:var(--green-on);
+      display:grid;
+      place-items:center;
+      font-family:Arial,sans-serif;
+      font-weight:900;
+      font-size:15px;
+      line-height:1;
+      z-index:1;
+    }
+    .brake-indicator.is-off{
+      color:#b8bcc4;
+    }
+    .brake-indicator.is-off .brake-disc{
+      background:#b8bcc4;
+      color:var(--black);
+    }
+    .panto-indicator{
+      position:absolute;
+      left:50%;
+      top:36px;
+      transform:translateX(-50%);
+      width:32px;
+      height:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      box-sizing:border-box;
+      font-family:"SimSun","NSimSun","Songti SC","STSong","宋体",serif;
+      font-size:18px;
+      font-weight:600;
+      line-height:20px;
+      text-align:center;
+      text-transform:lowercase;
+      border:none;
+      border-radius:0;
+      pointer-events:none;
+      z-index:2;
+    }
+    .panto-indicator.is-on{
+      background:var(--green);
+      color:var(--green-on);
+    }
+    .panto-indicator.is-off{
+      background:#b8bcc4;
+      color:var(--black);
+    }
+    .panto-indicator[hidden]{
+      display:none !important;
+    }
+    .device-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      min-height:22px;
+      padding:0;
+    }
+    .device-row.top-status{
+      justify-content:center;
+      min-height:16px;
+      margin-bottom:2px;
+      position:absolute;
+      top:26px;
+      left:0;
+      right:0;
+    }
+    .device-row.mid-row{
+      position:absolute;
+      top:54px;
+      left:4px;
+      right:4px;
+    }
+    .device-row.lower-row{
+      position:absolute;
+      top:130px;
+      left:4px;
+      right:4px;
+    }
+    .chip,.round{
+      background:var(--green);
+      color:var(--green-on);
+      border:1px solid var(--green);
+      font-weight:900;
+      text-align:center;
+      white-space:nowrap;
+    }
+    .chip{
+      min-width:20px;
+      border-radius:4px;
+      padding:1px 2px;
+      font-size:9px;
+      line-height:1;
+    }
+    .hscb-chip.chip{
+      border-radius:8px;
+      padding:3px 1px;
+      font-size:11px;
+      line-height:1;
+    }
+    .round{
+      min-width:24px;
+      min-height:16px;
+      border-radius:999px;
+      padding:2px 3px;
+      font-size:10px;
+      line-height:12px;
+    }
+    .round.big{
+      min-width:22px;
+      min-height:22px;
+      border-radius:50%;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      padding:0;
+    }
+    .round.small{
+      min-width:18px;
+      min-height:18px;
+      border-radius:50%;
+      padding:0;
+      font-size:10px;
+    }
+    .muted{
+      background:#d5d8d0;
+      color:#8b9289;
+      box-shadow:none;
+      border-color:#c5c9c0;
+    }
+    .door-band{
+      display:flex;
+      flex-direction:row;
+      justify-content:center;
+      align-items:stretch;
+      gap:1px;
+      margin:0;
+      box-sizing:border-box;
+      width:calc(100% - 2px);
+      left:1px;
+      right:auto;
+    }
+    .door-band.top{
+      position:absolute;
+      top:1px;
+      align-items:flex-end;
+    }
+    .door-band.bottom{
+      position:absolute;
+      bottom:1px;
+      align-items:flex-start;
+    }
+    .door{
+      flex:0 0 21px;
+      width:21px;
+      height:26px;
+      display:grid;
+      place-items:center;
+      color:var(--green-on);
+      font-family:var(--font-gb-song);
+      font-size:13px;
+      font-weight:400;
+      line-height:1;
+      background:var(--green);
+      border:none;
+      border-radius:0;
+      box-sizing:border-box;
+      overflow:hidden;
+      white-space:nowrap;
+      letter-spacing:-0.4px;
+    }
+    .door.open{
+      color:#2a1400;
+      background:#f68b24;
+    }
+    .car.doors-4 .door{
+      flex:0 0 26px;
+      width:26px;
+      height:26px;
+    }
+    .subtle{
+      position:absolute;
+      top:108px;
+      left:0;
+      right:0;
+      color:var(--green);
+      font-family:Georgia,serif;
+      font-size:14px;
+      font-weight:800;
+      text-align:center;
+    }
+
+    .table-wrapper{
+      position:absolute;
+      inset:0px 0px 2px 64px;
+      display:flex;
+      align-items:stretch;
+      justify-content:stretch;
+    }
+    .error-box{
+      position:absolute;
+      inset:0px 0px 2px 64px;
+      border:2px solid #fff;
+      display:flex;
+      align-items:center;
+      padding:0 10px;
+      font-family:"Consolas","Menlo",monospace;
+      font-size:14px;
+      white-space:nowrap;
+      overflow:hidden;
+    }
+    .status-table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      border:2px solid #fff;
+      color:#fff;
+      font-size:14px;
+      font-weight:800;
+      text-align:center;
+    }
+    .status-table .label-col{
+      width:160px;
+    }
+    .status-table .data-col{
+      width:calc((100% - 160px) / 8);
+    }
+    .status-table td{
+      border:2px solid #fff;
+      padding:2px 4px;
+      height:32px;
+      overflow:hidden;
+      text-overflow:clip;
+      white-space:nowrap;
+    }
+    .status-table td.split-cell{
+      padding:0;
+    }
+    .status-table .split-grid{
+      display:grid;
+      height:100%;
+      min-height:31px;
+      align-items:stretch;
+    }
+    .status-table .split-grid.cols-2{grid-template-columns:repeat(2,1fr)}
+    .status-table .split-grid.cols-4{grid-template-columns:repeat(4,1fr)}
+    .status-table .split-grid span{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-left:2px solid #fff;
+    }
+    .status-table .split-grid span:first-child{
+      border-left:none;
+    }
+    .status-table .tlabel{
+      font-size:15px;
+      white-space:nowrap;
+    }
+    .status-table .tlabel-cn{
+      font-family:var(--font-gb-song);
+      font-weight:400;
+      font-size:18px;
+    }
+    .status-table .ok-cell,
+    .status-table .err-cell{
+      font-family:var(--font-gb-song);
+      font-weight:400;
+      font-size:17px;
+    }
+    .status-table .ok-cell{
+      background:var(--green);
+      color:var(--green-on);
+    }
+    .status-table .err-cell{
+      background:#f4432f;
+      color:#fff;
+    }
+    .gauge-zone{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .force-meter{
+      width:150px;
+      height:185px;
+      position:relative;
+      color:#fff;
+      font-weight:900;
+      transform:scale(.88);
+      transform-origin:center;
+    }
+    .force-label{
+      position:absolute;
+      left:0;
+      width:48px;
+      text-align:right;
+      font-size:22px;
+      line-height:1;
+    }
+    .force-label.top{top:-6px}
+    .force-label.mid{top:78px}
+    .force-label.bottom{bottom:-6px}
+    .force-tick{
+      position:absolute;
+      left:58px;
+      width:24px;
+      height:2px;
+      background:#fff;
+    }
+    .force-tick.top{top:4px}
+    .force-tick.mid{top:91px}
+    .force-tick.bottom{bottom:4px}
+    .force-box{
+      position:absolute;
+      left:82px;
+      top:4px;
+      width:36px;
+      height:177px;
+    }
+    .force-frame{
+      position:absolute;
+      inset:0;
+      border:2px solid #fff;
+      background:transparent;
+      z-index:3;
+    }
+    .force-short-tick{
+      position:absolute;
+      left:68px;
+      width:14px;
+      height:2px;
+      background:#fff;
+    }
+    .force-short-tick.q75{top:48px}
+    .force-short-tick.q25{top:135px}
+    .force-bar{
+      position:absolute;
+      left:2px;
+      right:2px;
+      top:2px;
+      bottom:2px;
+      overflow:hidden;
+      z-index:2;
+    }
+    .force-fill{
+      position:absolute;
+      left:0;
+      bottom:0;
+      width:100%;
+      height:0;
+      background:#f4432f;
+    }
+    .force-fill.traction{
+      background:var(--green);
+    }
+    .info-row{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      height:100%;
+    }
+    .info-card{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      border-right:2px solid var(--grid);
+      color:#fff;
+      font-size:17px;
+      font-weight:900;
+    }
+    .mini-light{
+      min-width:62px;
+      padding:3px 8px;
+      border-radius:4px;
+      background:var(--green);
+      color:var(--green-on);
+      border:1px solid var(--green);
+      text-align:center;
+    }
+    .footer-row-6{
+      display:flex;
+      flex-wrap:nowrap;
+      gap:4px;
+      padding:1px 8px 0 4px;
+      align-items:flex-start;
+      justify-content:flex-start;
+      height:100%;
+    }
+    .footer-row-7{
+      display:flex;
+      flex-wrap:nowrap;
+      gap:11px;
+      padding:0 4px;
+      align-items:flex-start;
+      justify-content:center;
+      height:100%;
+      margin-top:-6px;
+      overflow:visible;
+      z-index:2;
+    }
+    .footer-row-7::before{
+      content:"";
+      position:absolute;
+      left:6px;
+      top:0;
+      width:2px;
+      height:58px;
+      background:#fff;
+    }
+    .footer-row-7::after{
+      content:"";
+      position:absolute;
+      left:6px;
+      right:4px;
+      top:58px;
+      height:2px;
+      background:#fff;
+    }
+    .footer-right-line{
+      position:absolute;
+      right:4px;
+      top:-10px;
+      width:2px;
+      height:70px;
+      background:#fff;
+      pointer-events:none;
+    }
+    .footer-btn-group{
+      display:flex;
+      flex-wrap:nowrap;
+      align-items:flex-start;
+      flex-shrink:0;
+    }
+    .footer-btn-group-wide{
+      gap:8px;
+    }
+    .footer-btn-group-tight{
+      gap:2px;
+    }
+    .footer-brake-link-line{
+      position:absolute;
+      right:4px;
+      top:46px;
+      width:24px;
+      height:2px;
+      background:#fff;
+      pointer-events:none;
+    }
+    .btn{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:114px;
+      height:48px;
+      flex-shrink:0;
+      padding-bottom:4px;
+      color:var(--black);
+      background:rgb(70,130,245);
+      border:none;
+      box-shadow:
+        inset 1.5px 1.5px 0 rgba(255,255,255,.9),
+        inset -0.25px -0.25px 0 rgba(255,255,255,.9);
+      font-size:24px;
+      font-weight:600;
+      font-synthesis:none;
+      letter-spacing:1px;
+      box-sizing:border-box;
+      white-space:nowrap;
+      font-family:var(--font-gb-song);
+    }
+    .btn.active{
+      color:var(--black);
+      background:rgb(255, 183, 29);
+    }
+    .btn.dark{
+      color:#fff;
+      background:#2c303a;
+      border-color:#5c6270;
+    }
+    .btn.disabled{
+      color:#777b85;
+      background:#1f2229;
+      border-color:#3a3f4c;
+    }
+    .btn.black-outline{
+      color:#fff;
+      background:var(--black);
+      border:2px solid #fff;
+      box-shadow:none;
+      font-size:22px;
+      height:48px;
+    }
+    .btn.mode-btn{
+      width:132px;
+    }
+    .mode-latin{
+      font-family:"Helvetica Neue",Arial,sans-serif;
+      font-weight:400;
+      font-size:23px;
+      letter-spacing:0;
+    }
+    .btn.announce-btn{
+      width:192px;
+    }
+    .btn.brake-btn{
+      width:172px;
+    }
+    .brake-value{
+      font-family:"Helvetica Neue",Arial,sans-serif;
+      font-weight:400;
+      font-variant-numeric:tabular-nums;
+      font-feature-settings:"tnum";
+      letter-spacing:0;
+    }
+    .value-green{color:var(--green)}
+    .value-blue{color:#dce4ff}
+  </style>
+</head>
+<body>
+<div class="simulator">
+  <main class="tcms" aria-label="列车监控 TCMS" id="dmi-main">
+    <section class="layout">
+      <div class="zone z1 header" data-zone="1">
+        <div class="train-id">编组: <span id="trainNo">19005(Tc2)</span></div>
+        <div class="title">运行</div>
+      </div>
+      <div class="zone z2 status-cell" data-zone="2">
+        <div class="half-box"><div class="val" id="dateText">2026-04-29</div></div>
+        <div class="half-box"><div class="val" id="timeText">17:21:57</div></div>
+      </div>
+      <div class="zone z3 status-cell" data-zone="3">
+        <div class="half-box"><div class="lab">下一站</div></div>
+        <div class="half-box"><div class="val" id="nextStation">牡丹园</div></div>
+      </div>
+      <div class="zone z4 status-cell" data-zone="4">
+        <div class="half-box"><div class="lab">终点站</div></div>
+        <div class="half-box"><div class="val" id="terminalStation">新宫</div></div>
+      </div>
+      <div class="zone z5 power" data-zone="5">
+        <div class="gray-box"><span class="minus-bar" id="currentSign" aria-hidden="true"></span><span class="amp" id="currentA">0</span></div><span class="unit">A</span>
+      </div>
+      <div class="zone z6 power" data-zone="6">
+        <div class="gray-box"><span class="amp" id="lineV">1500</span></div><span class="unit">V</span>
+      </div>
+      <div class="zone z7 speed" data-zone="7">
+        <div class="gray-box"><span class="num" id="speedKmh">0<span class="decimal-dot"></span>0</span></div><span class="unit">km/h</span>
+      </div>
+      <div class="zone z8 side-ind" data-zone="8"><span class="speed-alarm-icon" id="speedAlarmIcon" aria-label="报警" hidden></span></div>
+
+      <div class="zone z9 train-area" data-zone="9" id="trainArea" data-active-end="right" data-running-direction="right">
+        <div class="left-bar"><div class="arrow"></div></div>
+        <div class="main-cars">
+          <div class="pantographs">
+            <div class="panto" style="opacity:0"></div><div class="panto"></div><div class="panto" style="opacity:0"></div><div class="panto"></div>
+            <div class="panto" style="opacity:0"></div><div class="panto" style="opacity:0"></div><div class="panto"></div><div class="panto" style="opacity:0"></div>
+          </div>
+          <div class="cars" id="cars"></div>
+        </div>
+        <div class="right-bar"><div class="arrow"></div></div>
+      </div>
+
+      <div class="zone z10" data-zone="10">
+        <div class="table-wrapper">
+          <table class="status-table" id="statusTable"></table>
+        </div>
+      </div>
+      <div class="zone z11" data-zone="11">
+        <div class="error-box" id="tcmsLog"></div>
+      </div>
+      <div class="zone z12a gauge-zone" data-zone="12">
+        <div class="force-meter" aria-label="牵引制动力百分比">
+          <span class="force-label top">100</span>
+          <span class="force-label mid">50</span>
+          <span class="force-label bottom">0</span>
+          <span class="force-tick top"></span>
+          <span class="force-tick mid"></span>
+          <span class="force-tick bottom"></span>
+          <span class="force-short-tick q75"></span>
+          <span class="force-short-tick q25"></span>
+          <span class="force-box">
+            <span class="force-bar"><span class="force-fill" id="forceFill"></span></span>
+            <span class="force-frame"></span>
+          </span>
+        </div>
+      </div>
+      <div class="zone z15 footer-row-6" data-zone="15">
+        <div class="footer-btn-group footer-btn-group-wide">
+          <div class="btn">自检</div>
+          <div class="btn">广播</div>
+          <div class="btn">旁路信息</div>
+          <div class="btn">烟火报警</div>
+        </div>
+        <div class="footer-btn-group footer-btn-group-tight">
+          <div class="btn black-outline mode-btn" id="modeBtn"><span class="mode-latin">AM</span>模式</div>
+          <div class="btn black-outline announce-btn">全自动报站</div>
+          <div class="btn black-outline brake-btn"><span id="forceStateText">常用制动</span><span class="brake-value">-<span id="forcePct">0</span>%</span></div>
+        </div>
+        <span class="footer-brake-link-line" aria-hidden="true"></span>
+      </div>
+      <div class="zone z16 footer-row-7" data-zone="16">
+        <div class="btn active">运行</div>
+        <div class="btn">车辆状态</div>
+        <div class="btn">空调</div>
+        <div class="btn">事件</div>
+        <div class="btn">通讯状态</div>
+        <div class="btn">设置</div>
+        <div class="btn">帮助</div>
+        <div class="btn">检修</div>
+        <span class="footer-right-line" aria-hidden="true"></span>
+      </div>
+      <div style="display:none">
+        <span id="doorState"></span>
+        <span id="modeState"></span>
+        <span id="railState"></span>
+        <span id="acState"></span>
+        <span id="tractionPct"></span>
+      </div>
+    </section>
+  </main>
+
+  <div class="control-panel" id="mock-panel">
+      <h2>TCMS 打桩调试器</h2>
+      <div class="ctrl-group">
+          <h3>基础状态</h3>
+          <div class="slider-row">
+              <div><span>速度: <span id="v-speed">0.0</span> km/h</span></div>
+              <input type="range" id="c-speedKmh" min="0" max="110" step="0.1" value="0">
+          </div>
+          <div class="slider-row">
+              <div><span>网压: <span id="v-lineV">1500</span> V</span></div>
+              <input type="range" id="c-lineV" min="0" max="2000" step="1" value="1500">
+          </div>
+          <div class="slider-row">
+              <div><span>电流: <span id="v-motorCurrentA">0</span> A</span></div>
+              <input type="range" id="c-motorCurrentA" min="-1000" max="1000" step="1" value="0">
+          </div>
+          <div class="slider-row">
+              <div><span>牵引级位: <span id="v-trPct">0</span> %</span></div>
+              <input type="range" id="c-trPct" min="0" max="100" step="1" value="0">
+          </div>
+          <div class="slider-row">
+              <div><span>制动级位: <span id="v-bkPct">0</span> %</span></div>
+              <input type="range" id="c-bkPct" min="0" max="100" step="1" value="0">
+          </div>
+          <div class="ctrl-grid">
+              <div class="ctrl-item"><label>状态</label>
+                  <select id="c-forceState">
+                      <option value="auto" selected>自动</option>
+                      <option value="traction">牵引</option>
+                      <option value="coast">惰行</option>
+                      <option value="serviceBrake">常用制动</option>
+                      <option value="holdBrake">保持制动</option>
+                      <option value="emergencyBrake">紧急制动</option>
+                  </select>
+              </div>
+          </div>
+          <div class="slider-row">
+              <div><span>力度: <span id="v-forcePct">0</span> %</span></div>
+              <input type="range" id="c-forcePct" min="0" max="100" step="1" value="0">
+          </div>
+          <div class="slider-row">
+              <div><span>主风缸压力: <span id="v-mrPress">900</span> kPa</span></div>
+              <input type="range" id="c-mrPress" min="0" max="1200" step="10" value="900">
+          </div>
+          <div class="slider-row">
+              <div><span>制动缸压力: <span id="v-bcPress">0</span> kPa</span></div>
+              <input type="range" id="c-bcPress" min="0" max="600" step="10" value="0">
+          </div>
+      </div>
+      <div class="ctrl-group">
+          <h3>设备状态</h3>
+          <div class="ctrl-grid">
+              <div class="ctrl-item"><label>模式</label>
+                  <select id="c-mode">
+                      <option value="RM" selected>RM</option>
+                      <option value="AM">AM</option>
+                      <option value="CM">CM</option>
+                      <option value="FAM">FAM</option>
+                      <option value="ATB">ATB</option>
+                  </select>
+              </div>
+              <div class="ctrl-item"><label>激活端</label><select id="c-activeEnd"><option value="left">左</option><option value="right" selected>右</option></select></div>
+              <div class="ctrl-item"><label>运行方向</label><select id="c-runningDirection"><option value="left">左</option><option value="right" selected>右</option></select></div>
+              <div class="ctrl-item"><label>受流</label><select id="c-keyOn"><option value="true" selected>正常</option><option value="false">断电</option></select></div>
+              <div class="ctrl-item"><label>空调</label><select id="c-ac"><option value="false" selected>关</option><option value="true">开</option></select></div>
+              <div class="ctrl-item"><label>紧急制动</label><select id="c-ebActive"><option value="false" selected>已建立 (正常)</option><option value="true">未建立 (EB)</option></select></div>
+              <div class="ctrl-item ctrl-alarm-item"><label>报警</label><span class="ctrl-alarm-icon" aria-hidden="true"></span><select id="c-alarmActive"><option value="false" selected>正常</option><option value="true">报警</option></select></div>
+              <div class="ctrl-item" style="grid-column: span 2;"><label>车门状态</label>
+                  <select id="c-doorOpenSide">
+                      <option value="none" selected>全关</option>
+                      <option value="left">左开</option>
+                      <option value="right">右开</option>
+                      <option value="both">双开</option>
+                  </select>
+              </div>
+              <div class="ctrl-item"><label>编组</label><input type="text" id="c-trainNo" value="19005(Tc2)"></div>
+              <div class="ctrl-item"><label>下一站</label><input type="text" id="c-nextStation" value="牡丹园"></div>
+              <div class="ctrl-item"><label>终点站</label><input type="text" id="c-terminalStation" value="新宫"></div>
+          </div>
+      </div>
+      <div class="ctrl-group">
+          <h3>编组与车厢</h3>
+          <div class="ctrl-grid">
+              <div class="ctrl-item"><label>编组长度</label>
+                  <select id="c-consistLength">
+                      <option value="4">4节</option>
+                      <option value="6">6节</option>
+                      <option value="8" selected>8节</option>
+                  </select>
+              </div>
+              <div class="ctrl-item"><label>A侧在</label>
+                  <select id="c-aSideBand" title="全编组统一：A侧车门在上排或下排，另一侧为B侧">
+                      <option value="top" selected>上方</option>
+                      <option value="bottom">下方</option>
+                  </select>
+              </div>
+              <div class="ctrl-item"><label>每侧车门</label>
+                  <select id="c-doorsPerSide" title="每侧显示的车门对数量">
+                      <option value="4">4</option>
+                      <option value="5" selected>5</option>
+                  </select>
+              </div>
+          </div>
+          <div class="car-control-list" id="carControls"></div>
+      </div>
+      <div class="ctrl-group">
+          <h3>消息注入</h3>
+          <div class="ctrl-grid">
+              <div class="ctrl-item" style="grid-column: span 2;">
+                  <input type="text" id="c-logMsg" placeholder="输入日志消息...">
+              </div>
+              <div class="ctrl-item">
+                  <select id="c-logLevel">
+                      <option value="info">Info</option>
+                      <option value="ok">OK</option>
+                      <option value="err">Error</option>
+                  </select>
+              </div>
+              <div class="ctrl-item">
+                  <button type="button" id="btn-send-log" style="width:100%">发送日志</button>
+              </div>
+          </div>
+      </div>
+  </div>
+</div>
+
+  <script>
+    const CAR_NAMES = ["Tc1","Mp1","M1","Mp3","M3","M2","Mp2","Tc2"];
+    const CONSIST_BY_LENGTH = {
+      4: [0, 1, 6, 7],
+      6: [0, 1, 2, 5, 6, 7],
+      8: [0, 1, 2, 3, 4, 5, 6, 7]
+    };
+    const OCC = [27,35,21,14,16,18,20,12];
+    const TEMP = [21,21,23,22,23,22,21,22];
+    const DEFAULT_PANTO = ["none", "up", "none", "up", "none", "none", "up", "none"];
+    const CAR_GRID_GAP = 4;
+    const CAR_SLOT_WIDTH = (942 - CAR_GRID_GAP * 7) / 8;
+    const PANTO_STROKE = 'style="fill:none;stroke:currentColor;stroke-width:60;stroke-linejoin:miter;stroke-linecap:square;"';
+    const pantoSvg = (d) => `<svg viewBox="0 0 1024 1024" aria-hidden="true" focusable="false"><g transform="translate(512 512) scale(1.2 1) translate(-512 -512)"><path ${PANTO_STROKE} d="${d}" /></g></svg>`;
+    const PANTO_ICON = pantoSvg("M 208 256 L 280 128 H 744 L 816 256 M 512 128 V 256 L 704 512 L 512 768 V 928 M 400 928 H 624");
+    const PANTO_ICON_DOWN = pantoSvg("M 208 516 L 280 388 H 744 L 816 516 M 512 388 V 620 H 780 A 90 90 0 0 1 780 800 H 512 V 928 M 400 928 H 624");
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n, digits = 0) => Number(n || 0).toFixed(digits);
+    let lastData = {};
+    let renderedConsistLength = null;
+    let renderedDoorPairCount = null;
+    // 父页面下发但无对应调试控件（c-*）的透传字段，syncMockToTCMS 重组时需带回
+    let lastPassthrough = {};
+
+    function getConsistLength(data = {}) {
+      const length = Number(data.consistLength ?? $("c-consistLength")?.value ?? 8);
+      return CONSIST_BY_LENGTH[length] ? length : 8;
+    }
+
+    function getCarNames(data = {}) {
+      const names = Array.isArray(data.carNames) ? data.carNames : [];
+      return CAR_NAMES.map((defaultName, i) => {
+        const custom = names[i];
+        return typeof custom === "string" && custom.trim() ? custom.trim() : defaultName;
+      });
+    }
+
+    function getActiveCars(data = {}) {
+      const carNames = getCarNames(data);
+      const cars = CONSIST_BY_LENGTH[getConsistLength(data)].map((sourceIndex) => ({
+        name: carNames[sourceIndex],
+        sourceIndex
+      }));
+      return cars;
+    }
+
+    function getDoorPairCount(data = {}) {
+      const count = Number(data.doorsPerSide ?? $("c-doorsPerSide")?.value ?? 5);
+      return count === 4 ? 4 : 5;
+    }
+
+    function defaultPairNums(carIdx, pairCount = getDoorPairCount()) {
+      return Array.from({length: pairCount}, (_, j) =>
+        String((carIdx + 1) * 10 + j + 1).padStart(2, "0"));
+    }
+
+    function normalizeDoorNum(value, fallback = "01") {
+      const digits = String(value ?? "").replace(/\D/g, "");
+      const raw = digits || String(fallback).replace(/\D/g, "") || "01";
+      return raw.slice(-2).padStart(2, "0");
+    }
+
+    function getASideBand(data = {}) {
+      if (data.aSideBand === "bottom") return "bottom";
+      const configs = Array.isArray(data.doorConfigs) ? data.doorConfigs : [];
+      const fromConfig = configs.find((c) => c?.aSideBand === "bottom" || c?.aSideBand === "top");
+      if (fromConfig?.aSideBand === "bottom") return "bottom";
+      if ($("c-aSideBand")?.value === "bottom") return "bottom";
+      return "top";
+    }
+
+    function getDoorConfigs(data = {}) {
+      const aSideBand = getASideBand(data);
+      const pairCount = getDoorPairCount(data);
+      const configs = Array.isArray(data.doorConfigs) ? data.doorConfigs : [];
+      return CAR_NAMES.map((_, carIdx) => {
+        const c = configs[carIdx] || {};
+        const nums = Array.isArray(c.pairNums) ? c.pairNums : [];
+        const defaults = defaultPairNums(carIdx, pairCount);
+        const pairNums = Array.from({length: pairCount}, (_, j) =>
+          normalizeDoorNum(nums[j], defaults[j]));
+        return {aSideBand, pairNums};
+      });
+    }
+
+    function doorLabelForBand(config, band, pairIndex) {
+      const isA = config.aSideBand === band;
+      return `${isA ? "A" : "B"}${config.pairNums[pairIndex]}`;
+    }
+
+    function renderDoorCells(sourceIndex, band, config, pairCount) {
+      return Array.from({length: pairCount}, (_, pairIndex) => {
+        const label = doorLabelForBand(config, band, pairIndex);
+        return `<div class="door" data-car="${sourceIndex}" data-pair="${pairIndex}" data-band="${band}">${label}</div>`;
+      }).join("");
+    }
+
+    function getCarStates(data = {}) {
+      const states = Array.isArray(data.carStates) ? data.carStates : [];
+      const optionalNumber = (value) => {
+        if (value === null || value === undefined || value === "") return null;
+        const number = Number(value);
+        return Number.isFinite(number) ? number : null;
+      };
+      return CAR_NAMES.map((_, i) => ({
+        doorOpenSide: states[i]?.doorOpenSide || "inherit",
+        bcPress: optionalNumber(states[i]?.bcPress),
+        motorKn: optionalNumber(states[i]?.motorKn),
+        occ: optionalNumber(states[i]?.occ) ?? OCC[i],
+        temp: optionalNumber(states[i]?.temp) ?? TEMP[i],
+        pantoState: states[i]?.pantoState || DEFAULT_PANTO[i]
+      }));
+    }
+
+    function isCarBraking(carIndex, data = {}) {
+      const carStates = getCarStates(data);
+      const carBc = carStates[carIndex]?.bcPress;
+      const globalBc = data.bcPress ?? 0;
+      const bc = carBc ?? globalBc;
+      if (bc > 10) return true;
+      if (data.ebActive) return true;
+      return (data.bkPct ?? 0) > 2;
+    }
+
+    function updateBrakeIndicators(data = {}) {
+      document.querySelectorAll(".brake-indicator[data-car]").forEach((el) => {
+        const carIndex = Number(el.dataset.car);
+        const active = isCarBraking(carIndex, data);
+        el.classList.toggle("is-on", active);
+        el.classList.toggle("is-off", !active);
+      });
+    }
+
+    function updatePantoIndicators(data = {}) {
+      const carStates = getCarStates(data);
+      const syncPantoCar = (el) => {
+        const carIndex = Number(el.dataset.car);
+        const panto = carStates[carIndex]?.pantoState || "none";
+        return {carIndex, panto, hasPanto: panto !== "none"};
+      };
+      document.querySelectorAll(".hscb-chip[data-car]").forEach((el) => {
+        el.hidden = !syncPantoCar(el).hasPanto;
+      });
+      document.querySelectorAll(".brake-indicator.brake-bottom[data-car]").forEach((el) => {
+        el.hidden = !syncPantoCar(el).hasPanto;
+      });
+      document.querySelectorAll(".panto-indicator[data-car]").forEach((el) => {
+        const {panto, hasPanto} = syncPantoCar(el);
+        if (!hasPanto) {
+          el.hidden = true;
+          return;
+        }
+        el.hidden = false;
+        const isOn = panto === "up";
+        el.textContent = isOn ? "on" : "off";
+        el.classList.toggle("is-on", isOn);
+        el.classList.toggle("is-off", !isOn);
+      });
+    }
+
+    function updatePantographs(data = {}) {
+      const activeCars = getActiveCars(data);
+      const carStates = getCarStates(data);
+      const pantographs = document.querySelector(".pantographs");
+      if (!pantographs) return;
+      pantographs.style.gridTemplateColumns = `repeat(8, ${CAR_SLOT_WIDTH}px)`;
+      Array.from(pantographs.children).forEach((el, slotIndex) => {
+        if (slotIndex >= activeCars.length) {
+          el.style.display = "none";
+          el.classList.remove("panto-down");
+          return;
+        }
+        const { sourceIndex } = activeCars[slotIndex];
+        const panto = carStates[sourceIndex].pantoState || "none";
+        el.style.display = "";
+        el.classList.toggle("panto-down", panto === "down");
+        if (panto === "none") {
+          el.style.opacity = "0";
+        } else {
+          el.style.opacity = "1";
+          el.innerHTML = panto === "down" ? PANTO_ICON_DOWN : PANTO_ICON;
+        }
+      });
+    }
+
+    function effectiveDoorSide(carState, fallbackSide) {
+      return carState?.doorOpenSide && carState.doorOpenSide !== "inherit"
+        ? carState.doorOpenSide
+        : fallbackSide;
+    }
+
+    function fitScreen() {
+      const scale = Math.min(window.innerWidth / 1024, window.innerHeight / 768);
+      document.querySelector(".tcms").style.transform = `scale(${scale})`;
+    }
+
+    function updateCarNames(data = {}) {
+      const activeCars = getActiveCars(data);
+      const carEls = $("cars")?.children;
+      if (!carEls) return;
+      activeCars.forEach(({name, sourceIndex}, i) => {
+        const carEl = carEls[i];
+        if (!carEl) return;
+        carEl.dataset.carIndex = String(sourceIndex);
+        const nameEl = carEl.querySelector(".car-name");
+        if (nameEl) nameEl.textContent = name;
+      });
+    }
+
+    function updateDoorLabels(data = {}) {
+      const doorConfigs = getDoorConfigs(data);
+      document.querySelectorAll(".door[data-car][data-band][data-pair]").forEach((el) => {
+        const carIndex = Number(el.dataset.car);
+        const band = el.dataset.band;
+        const pairIndex = Number(el.dataset.pair);
+        const config = doorConfigs[carIndex];
+        if (!config || !band) return;
+        el.textContent = doorLabelForBand(config, band, pairIndex);
+      });
+    }
+
+    function renderBrakeIndicator(sourceIndex, extraClass = "", withBrakeHscb = false, discLabel = "B") {
+      return `<div class="brake-indicator is-off ${extraClass}" data-car="${sourceIndex}" aria-label="制动">
+            <svg class="brake-frame" viewBox="0 0 38 24" aria-hidden="true">
+              <path d="M 6 5.5 Q 3 12 6 18.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M 32 5.5 Q 35 12 32 18.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span class="brake-disc">${discLabel}</span>
+            ${withBrakeHscb ? `<div class="hscb-chip chip hscb-brake" data-car="${sourceIndex}" hidden>BCM</div>` : ""}
+          </div>`;
+    }
+
+    function buildCars(data = {}) {
+      const activeCars = getActiveCars(data);
+      const doorConfigs = getDoorConfigs(data);
+      const pairCount = getDoorPairCount(data);
+      const mainCars = document.querySelector(".main-cars");
+      if (mainCars) {
+        mainCars.style.width = `${CAR_SLOT_WIDTH * activeCars.length + CAR_GRID_GAP * (activeCars.length - 1)}px`;
+      }
+      $("cars").style.gridTemplateColumns = `repeat(${activeCars.length}, ${CAR_SLOT_WIDTH}px)`;
+      $("cars").innerHTML = activeCars.map(({sourceIndex}, displayIndex) => {
+        const dc = doorConfigs[sourceIndex];
+        const isHead = displayIndex === 0;
+        const isTail = displayIndex === activeCars.length - 1;
+        return `<div class="car${pairCount === 4 ? " doors-4" : ""}" data-car-index="${sourceIndex}">
+          <div class="door-band top">${renderDoorCells(sourceIndex, "top", dc, pairCount)}</div>
+          <div class="hscb-chip chip hscb-main" data-car="${sourceIndex}" hidden>HSCB</div>
+          <div class="hscb-chip chip hscb-start" data-car="${sourceIndex}" hidden>HSCB</div>
+          <div class="hscb-chip chip hscb-end" data-car="${sourceIndex}" hidden>HSCB</div>
+          ${renderBrakeIndicator(sourceIndex, "brake-main")}
+          ${renderBrakeIndicator(sourceIndex, "brake-bottom", true, "Pk")}
+          <div class="panto-indicator" data-car="${sourceIndex}" hidden>off</div>
+          <div class="car-name-row">
+            <div class="car-name-slot-start">${isHead ? `<div class="exit-badge">EXIT</div>` : ""}</div>
+            <div class="car-name"></div>
+            <div class="car-name-slot-end">${isTail ? `<div class="exit-badge">EXIT</div>` : ""}</div>
+          </div>
+          <div class="door-band bottom">${renderDoorCells(sourceIndex, "bottom", dc, pairCount)}</div>
+        </div>`;
+      }).join("");
+      updateCarNames(data);
+      updatePantoIndicators(data);
+      updateBrakeIndicators(data);
+      updatePantographs(data);
+    }
+
+    function tlabelHtml(cn, unit = "") {
+      return `<span class="tlabel-cn">${cn}</span>${unit}`;
+    }
+
+    function buildTable(data = {}) {
+      const mr = data.mrPress ?? 900;
+      const bc = data.bcPress ?? 0;
+      const motorA = data.motorCurrentA ?? 0;
+      const trPct = data.trPct ?? 0;
+      const bkPct = data.bkPct ?? 0;
+      const motorKn = Math.abs(motorA) > 8 ? Math.max(12, Math.abs(motorA) / 26) : 0;
+      const activeCars = getActiveCars(data);
+      const carStates = getCarStates(data);
+      
+      const r1c2 = fmt(mr);
+      const r1c3 = fmt(mr - 2);
+      const safeClass = data.ebActive ? "err-cell" : "ok-cell";
+      const safeText = data.ebActive ? "未建立" : "已建立";
+      
+      const safetyCells = activeCars.length >= 8
+        ? `<td colspan="2" class="tlabel">${tlabelHtml("空转/滑行")}</td><td></td><td colspan="2" class="tlabel">${tlabelHtml("牵引安全")}</td><td class="${safeClass}">${safeText}</td>`
+        : activeCars.length >= 6
+          ? `<td colspan="2" class="split-cell"><div class="split-grid cols-2"><span class="tlabel">${tlabelHtml("空转/滑行")}</span><span></span></div></td><td class="tlabel">${tlabelHtml("牵引安全")}</td><td class="${safeClass}">${safeText}</td>`
+          : `<td colspan="2" class="split-cell"><div class="split-grid cols-4"><span class="tlabel">${tlabelHtml("空转/滑行")}</span><span></span><span class="tlabel">${tlabelHtml("牵引安全")}</span><span class="${safeClass}">${safeText}</span></div></td>`;
+
+      let html = `
+        <colgroup>
+          <col class="label-col">
+          ${activeCars.map(() => `<col class="data-col">`).join("")}
+        </colgroup>
+        <tr>
+          <td class="tlabel">${tlabelHtml("主风缸压力", "(kPa)")}</td>
+          <td>${r1c2}</td>
+          <td>${r1c3}</td>
+          ${safetyCells}
+        </tr>
+      `;
+      
+      html += `<tr><td class="tlabel">${tlabelHtml("制动缸压力", "(kPa)")}</td>` + activeCars.map(({sourceIndex}) => {
+        const value = carStates[sourceIndex].bcPress ?? bc;
+        return `<td>${fmt(value)}</td>`;
+      }).join("") + `</tr>`;
+      html += `<tr><td class="tlabel">${tlabelHtml("牵引/电制动力", "(kN)")}</td>` + activeCars.map(({name, sourceIndex}) => {
+        const value = carStates[sourceIndex].motorKn ?? motorKn * (trPct ? 1 : -1);
+        return `<td>${name.startsWith("Tc") ? "--" : fmt(value, 2)}</td>`;
+      }).join("") + `</tr>`;
+      html += `<tr><td class="tlabel">${tlabelHtml("乘客率", "(%)")}</td>` + activeCars.map(({sourceIndex}) => `<td>${fmt(carStates[sourceIndex].occ)}</td>`).join("") + `</tr>`;
+      html += `<tr><td class="tlabel">${tlabelHtml("客室温度", "(℃)")}</td>` + activeCars.map(({sourceIndex}) => `<td>${fmt(carStates[sourceIndex].temp, 1)}</td>`).join("") + `</tr>`;
+      
+      $("statusTable").innerHTML = html;
+    }
+
+    function doorLabel(side) {
+      if (side === "both") return "双开";
+      if (side === "left") return "左开";
+      if (side === "right") return "右开";
+      return "全关";
+    }
+
+    function forceStateLabel(state) {
+      if (state === "traction") return "牵引";
+      if (state === "coast") return "惰行";
+      if (state === "holdBrake") return "保持制动";
+      if (state === "emergencyBrake") return "紧急制动";
+      return "常用制动";
+    }
+
+    function resolveForceState(data) {
+      if (data.forceState && data.forceState !== "auto") {
+        return {
+          state: data.forceState,
+          pct: Math.max(0, Math.min(100, data.forcePct ?? 0))
+        };
+      }
+      const tr = Math.max(0, Math.min(100, data.trPct ?? 0));
+      const bk = Math.max(0, Math.min(100, data.bkPct ?? 0));
+      const speed = Math.abs(data.speedKmh ?? 0);
+      const zeroSpeed = data.zeroSpeed ?? speed < 0.05;
+      if (data.ebActive) return {state: "emergencyBrake", pct: Math.max(bk, 100)};
+      if (data.atpSbActive) return {state: "serviceBrake", pct: Math.max(bk, bk > 2 ? bk : 100)};
+      if (tr > 2) return {state: "traction", pct: tr};
+      if (data.holdBrakeActive) return {state: "holdBrake", pct: bk > 2 ? bk : 60};
+      if (bk > 2) return {state: "serviceBrake", pct: bk};
+      return {state: "coast", pct: 0};
+    }
+
+    function updateDoors(side, carStates = []) {
+      document.querySelectorAll(".door").forEach((el) => {
+        const carIndex = Number(el.dataset.car);
+        const carSide = effectiveDoorSide(carStates[carIndex], side);
+        const isBottom = el.closest(".door-band.bottom");
+        const open = isBottom
+          ? carSide === "right" || carSide === "both"
+          : carSide === "left" || carSide === "both";
+        el.classList.toggle("open", open);
+      });
+    }
+
+    function applyData(data) {
+      lastData = {...lastData, ...data};
+      const consistLength = getConsistLength(data);
+      const doorPairCount = getDoorPairCount(data);
+      const carStates = getCarStates(data);
+      if (renderedConsistLength !== consistLength || renderedDoorPairCount !== doorPairCount) {
+        buildCars(data);
+        renderCarControls(data);
+        renderedConsistLength = consistLength;
+        renderedDoorPairCount = doorPairCount;
+      }
+      $("trainNo").textContent = data.trainNo || "19005(Tc2)";
+      $("dateText").textContent = data.date || new Date().toISOString().slice(0, 10);
+      $("timeText").textContent = data.time || new Date().toTimeString().slice(0, 8);
+      $("nextStation").textContent = data.nextStation || "牡丹园";
+      $("terminalStation").textContent = data.terminalStation || "新宫";
+      const trainArea = $("trainArea");
+      if (trainArea) {
+        trainArea.dataset.activeEnd = data.activeEnd === "left" ? "left" : "right";
+        trainArea.dataset.runningDirection = data.runningDirection === "left" ? "left" : "right";
+      }
+      const currentSign = $("currentSign");
+      if (currentSign) {
+        currentSign.classList.toggle("is-active", (data.motorCurrentA ?? 0) < -0.5);
+        currentSign.setAttribute("aria-hidden", (data.motorCurrentA ?? 0) < -0.5 ? "false" : "true");
+      }
+      $("currentA").textContent = fmt(Math.abs(data.motorCurrentA ?? 0));
+      $("lineV").textContent = fmt(data.lineV ?? 1500);
+      $("speedKmh").innerHTML = fmt(data.speedKmh ?? 0, 1).replace(".", `<span class="decimal-dot"></span>`);
+      const speedAlarmIcon = $("speedAlarmIcon");
+      const alarmOn = !!(data.alarmActive || data.ebActive);
+      if (speedAlarmIcon) {
+        speedAlarmIcon.hidden = !alarmOn;
+        speedAlarmIcon.classList.toggle("is-alarm-active", alarmOn);
+      }
+      $("doorState").textContent = doorLabel(data.doorOpenSide);
+      $("modeState").textContent = data.mode || "RM";
+      const modeBtn = $("modeBtn");
+      if (modeBtn) {
+        modeBtn.replaceChildren();
+        const modeText = document.createElement("span");
+        modeText.className = "mode-latin";
+        modeText.textContent = data.mode || "RM";
+        modeBtn.append(modeText, "模式");
+      }
+      $("railState").textContent = data.keyOn === false ? "断电" : "正常";
+      const forceState = resolveForceState(data);
+      $("forceStateText").textContent = forceStateLabel(forceState.state);
+      $("forcePct").textContent = fmt(forceState.pct);
+      $("acState").textContent = data.ac ? "on" : "关";
+      $("tractionPct").textContent = `${fmt(data.trPct ?? 0)}%`;
+      const forceFill = $("forceFill");
+      if (forceFill) {
+        const traction = forceState.state === "traction";
+        forceFill.classList.toggle("traction", traction);
+        forceFill.style.height = `${forceState.pct}%`;
+      }
+      updateCarNames(data);
+      updateDoorLabels(data);
+      updatePantoIndicators(data);
+      updateBrakeIndicators(data);
+      updateDoors(data.doorOpenSide || "none", carStates);
+      updatePantographs(data);
+      buildTable(data);
+    }
+
+    function appendLog(message, type = "info") {
+      const logEl = $("tcmsLog");
+      if (logEl) {
+        const prefix = new Date().toTimeString().slice(0, 8);
+        logEl.textContent = `[${prefix}] ${message}`;
+        logEl.style.color = type === "err" ? "#ffd0d0" : type === "ok" ? "#dcffe1" : "#e5f0ff";
+      }
+    }
+
+    function renderCarControls(data = lastData) {
+      const container = $("carControls");
+      if (!container) return;
+      const activeCars = getActiveCars(data);
+      const states = getCarStates(data);
+      const escAttr = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+      const doorConfigs = getDoorConfigs(data);
+      const pairCount = getDoorPairCount(data);
+      container.innerHTML = activeCars.map(({name, sourceIndex}, displayIndex) => {
+        const state = states[sourceIndex];
+        const doorCfg = doorConfigs[sourceIndex];
+        return `
+          <section class="car-panel" data-car-control="${sourceIndex}">
+            <h4 class="car-panel-title">第 ${displayIndex + 1} 节 <span class="car-slot">槽位 ${sourceIndex + 1}</span></h4>
+            <div class="ctrl-grid">
+              <div class="ctrl-item">
+                <label>序号</label>
+                <input type="text" id="c-car-${sourceIndex}-name" value="${escAttr(name)}" maxlength="12" title="车厢序号">
+              </div>
+              <div class="ctrl-item">
+                <label>开门</label>
+                <select id="c-car-${sourceIndex}-door">
+                  <option value="inherit"${state.doorOpenSide === "inherit" ? " selected" : ""}>跟随</option>
+                  <option value="none"${state.doorOpenSide === "none" ? " selected" : ""}>全关</option>
+                  <option value="left"${state.doorOpenSide === "left" ? " selected" : ""}>左开</option>
+                  <option value="right"${state.doorOpenSide === "right" ? " selected" : ""}>右开</option>
+                  <option value="both"${state.doorOpenSide === "both" ? " selected" : ""}>双开</option>
+                </select>
+              </div>
+              <div class="ctrl-item">
+                <label>受电弓</label>
+                <select id="c-car-${sourceIndex}-panto">
+                  <option value="none"${state.pantoState === "none" ? " selected" : ""}>无</option>
+                  <option value="up"${state.pantoState === "up" ? " selected" : ""}>升弓</option>
+                  <option value="down"${state.pantoState === "down" ? " selected" : ""}>降弓</option>
+                </select>
+              </div>
+              <div class="ctrl-item">
+                <label>制动 kPa</label>
+                <input type="number" id="c-car-${sourceIndex}-bcPress" min="0" max="600" step="10" value="${state.bcPress ?? ""}" placeholder="跟随全局">
+              </div>
+              <div class="ctrl-item">
+                <label>牵引 kN</label>
+                <input type="number" id="c-car-${sourceIndex}-motorKn" step="0.1" value="${state.motorKn ?? ""}" placeholder="跟随全局">
+              </div>
+              <div class="ctrl-item">
+                <label>乘客 %</label>
+                <input type="number" id="c-car-${sourceIndex}-occ" min="0" max="200" step="1" value="${state.occ}">
+              </div>
+              <div class="ctrl-item">
+                <label>温度 ℃</label>
+                <input type="number" id="c-car-${sourceIndex}-temp" min="-20" max="60" step="0.1" value="${state.temp}">
+              </div>
+            </div>
+            <fieldset class="door-pair-field">
+              <legend>车门对编号（${pairCount}对 · A/B 同号）</legend>
+              <div class="door-pair-rows">
+                ${doorCfg.pairNums.map((num, j) => `
+                  <div class="door-pair-row">
+                    <span>对${j + 1}</span>
+                    <input type="text" id="c-car-${sourceIndex}-door-${j}" value="${escAttr(num)}" maxlength="2" inputmode="numeric" pattern="[0-9]*" title="两位数字，例如 31 → 上方/下方显示 A31 与 B31">
+                    <span class="door-pair-hint">A${escAttr(num)} · B${escAttr(num)}</span>
+                  </div>
+                `).join("")}
+              </div>
+            </fieldset>
+          </section>
+        `;
+      }).join("");
+    }
+
+    function readDoorConfigs() {
+      const aSideBand = $("c-aSideBand")?.value === "bottom" ? "bottom" : "top";
+      const pairCount = getDoorPairCount({doorsPerSide: $("c-doorsPerSide")?.value});
+      const previous = getDoorConfigs({...lastData, doorsPerSide: pairCount});
+      return CAR_NAMES.map((_, i) => {
+        const pairNums = Array.from({length: pairCount}, (_, j) => {
+          const el = $(`c-car-${i}-door-${j}`);
+          if (!el) return previous[i].pairNums[j];
+          return normalizeDoorNum(el.value, previous[i].pairNums[j]);
+        });
+        return {aSideBand, pairNums};
+      });
+    }
+
+    function readCarNames() {
+      const previous = getCarNames(lastData);
+      return CAR_NAMES.map((defaultName, i) => {
+        const el = $(`c-car-${i}-name`);
+        if (!el) return previous[i];
+        const value = el.value.trim();
+        return value || defaultName;
+      });
+    }
+
+    function readCarStates() {
+      const previousStates = getCarStates(lastData);
+      return CAR_NAMES.map((_, i) => {
+        const toOptionalNumber = (id) => {
+          const el = $(id);
+          if (!el) return undefined;
+          if (el.value === "") return null;
+          const value = Number(el.value);
+          return Number.isFinite(value) ? value : undefined;
+        };
+        const keepPreviousIfMissing = (id, previousValue) => {
+          const value = toOptionalNumber(id);
+          return value === undefined ? previousValue : value;
+        };
+        const previousState = previousStates[i];
+        return {
+          doorOpenSide: $(`c-car-${i}-door`)?.value || previousState.doorOpenSide,
+          pantoState: $(`c-car-${i}-panto`)?.value || previousState.pantoState,
+          bcPress: keepPreviousIfMissing(`c-car-${i}-bcPress`, previousState.bcPress),
+          motorKn: keepPreviousIfMissing(`c-car-${i}-motorKn`, previousState.motorKn),
+          occ: keepPreviousIfMissing(`c-car-${i}-occ`, previousState.occ),
+          temp: keepPreviousIfMissing(`c-car-${i}-temp`, previousState.temp)
+        };
+      });
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      const msg = event.data || {};
+      if (msg.type === "metro-tcms-log") {
+        appendLog(msg.message, msg.level);
+        return;
+      }
+      if (msg.type !== "metro-tcms-dmi") return;
+      const state = msg.state;
+      if (!state || typeof state !== "object") return;
+      // 无 c-* 调试控件的字段在重组时会丢失，单独暂存以便透传
+      lastPassthrough = {
+        holdBrakeActive: state.holdBrakeActive
+      };
+      try {
+        for (const [id, val] of Object.entries(state)) {
+          const el = document.getElementById("c-" + id);
+          if (!el || !("value" in el)) continue;
+          el.value = String(val);
+        }
+      } catch (err) { console.warn("metro-tcms-dmi apply", err); }
+      syncMockToTCMS();
+    });
+
+    function syncMockToTCMS() {
+      const data = {
+        speedKmh: parseFloat($("c-speedKmh").value),
+        lineV: parseFloat($("c-lineV").value),
+        motorCurrentA: parseFloat($("c-motorCurrentA").value),
+        trPct: parseFloat($("c-trPct").value),
+        bkPct: parseFloat($("c-bkPct").value),
+        forceState: $("c-forceState").value,
+        forcePct: parseFloat($("c-forcePct").value),
+        mrPress: parseFloat($("c-mrPress").value),
+        bcPress: parseFloat($("c-bcPress").value),
+        mode: $("c-mode").value,
+        activeEnd: $("c-activeEnd").value,
+        runningDirection: $("c-runningDirection").value,
+        keyOn: $("c-keyOn").value === "true",
+        ac: $("c-ac").value === "true",
+        ebActive: $("c-ebActive").value === "true",
+        alarmActive: $("c-alarmActive")?.value === "true",
+        doorOpenSide: $("c-doorOpenSide").value,
+        consistLength: parseInt($("c-consistLength").value, 10),
+        doorsPerSide: getDoorPairCount(),
+        aSideBand: $("c-aSideBand")?.value === "bottom" ? "bottom" : "top",
+        carNames: readCarNames(),
+        doorConfigs: readDoorConfigs(),
+        carStates: readCarStates(),
+        trainNo: $("c-trainNo").value,
+        nextStation: $("c-nextStation").value,
+        terminalStation: $("c-terminalStation").value,
+        holdBrakeActive: lastPassthrough.holdBrakeActive
+      };
+      
+      $("v-speed").textContent = data.speedKmh.toFixed(1);
+      $("v-lineV").textContent = data.lineV;
+      $("v-motorCurrentA").textContent = data.motorCurrentA;
+      $("v-trPct").textContent = data.trPct;
+      $("v-bkPct").textContent = data.bkPct;
+      $("v-forcePct").textContent = data.forcePct;
+      $("v-mrPress").textContent = data.mrPress;
+      $("v-bcPress").textContent = data.bcPress;
+
+      applyData(data);
+    }
+
+    $("mock-panel").addEventListener("input", syncMockToTCMS);
+    $("mock-panel").addEventListener("change", syncMockToTCMS);
+
+    $("btn-send-log").addEventListener("click", () => {
+      const msg = $("c-logMsg").value;
+      const level = $("c-logLevel").value;
+      if (msg) {
+        appendLog(msg, level);
+      }
+    });
+
+    buildCars();
+    buildTable();
+    applyData({});
+    
+    /* metro-simulator 嵌入：由父页面下发状态并刷新 DMI */
+    (function embedMetro() {
+        const p = new URLSearchParams(location.search);
+        if (p.get("embed") === "1") {
+            const cab = p.get("cab");
+            if (cab === "Tc1" || cab === "Tc2") {
+                const localTrainNo = `19005(${cab})`;
+                $("trainNo").textContent = localTrainNo;
+                $("c-trainNo").value = localTrainNo;
+            }
+            document.documentElement.classList.add("tcms-embed-root");
+            document.body.classList.add("tcms-embed");
+            const dmi = document.getElementById("dmi-main");
+            const sim = document.querySelector(".simulator");
+            if (dmi && sim && !document.getElementById("tcms-embed-wrap")) {
+                const wrap = document.createElement("div");
+                wrap.id = "tcms-embed-wrap";
+                wrap.style.overflow = "hidden";
+                wrap.style.margin = "0 auto";
+                sim.insertBefore(wrap, dmi);
+                wrap.appendChild(dmi);
+            }
+            const wrap = document.getElementById("tcms-embed-wrap");
+            const DMI_NAT_W = 1024;
+            const DMI_NAT_H = 768;
+            const scale = () => {
+                const iw = window.innerWidth || DMI_NAT_W;
+                const ih = window.innerHeight || DMI_NAT_H;
+                const s = Math.min(iw / DMI_NAT_W, ih / DMI_NAT_H);
+                const inv = 1 - s;
+                if (wrap) {
+                    wrap.style.width = Math.round(DMI_NAT_W * s) + "px";
+                    wrap.style.height = Math.round(DMI_NAT_H * s) + "px";
+                    wrap.style.overflow = "hidden";
+                    wrap.style.marginLeft = "auto";
+                    wrap.style.marginRight = "auto";
+                }
+                if (dmi) {
+                    dmi.style.transform = `scale(${s})`;
+                    dmi.style.transformOrigin = "top left";
+                    dmi.style.marginBottom = "-" + Math.round(DMI_NAT_H * inv) + "px";
+                    dmi.style.marginRight = "-" + Math.round(DMI_NAT_W * inv) + "px";
+                }
+            };
+            scale();
+            window.addEventListener("resize", scale);
+        }
+    })();
+
+    setInterval(() => {
+      if (!lastData.time) $("timeText").textContent = new Date().toTimeString().slice(0, 8);
+    }, 1000);
+
+    syncMockToTCMS();
+  </script>
+</body>
+</html>
